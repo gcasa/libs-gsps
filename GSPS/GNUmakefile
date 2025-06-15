@@ -15,7 +15,8 @@ include $(GNUSTEP_MAKEFILES)/common.make
 #
 VERSION = 0.0.1
 PACKAGE_NAME = GSPS
-FRAMEWORK_NAME = GSPS
+APP_NAME = GSPS
+# FRAMEWORK_NAME = GSPS
 
 #
 # Resource files
@@ -37,7 +38,7 @@ MiniPostScriptVM.m \
 # Makefiles
 #
 -include GNUmakefile.preamble
-#include $(GNUSTEP_MAKEFILES)/aggregate.make
+include $(GNUSTEP_MAKEFILES)/aggregate.make
 #include $(GNUSTEP_MAKEFILES)/framework.make
 include $(GNUSTEP_MAKEFILES)/application.make
 -include GNUmakefile.postamble
