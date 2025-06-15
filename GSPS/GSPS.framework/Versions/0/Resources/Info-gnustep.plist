@@ -1,0 +1,9 @@
+{
+  NOTE = "Automatically generated, do not edit!";
+  NSExecutable = "GSPS";
+  NSMainNibFile = "";
+  NSPrincipalClass = "GSPS";
+  Classes = 
+()
+  ;
+}
