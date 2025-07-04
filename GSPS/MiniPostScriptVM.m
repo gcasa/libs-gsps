@@ -68,7 +68,29 @@
   if (self.exitFlag) return;
 
   // handle tokens...
-  if ([token isEqualToString:@"true"]) {
+  if ([token isEqualToString:@"type"]) {
+    id obj = self.operandStack.lastObject;
+    if ([obj isKindOfClass:[NSNumber class]]) {
+      [self.operandStack addObject:@"number"];
+    } else if ([obj isKindOfClass:[NSString class]]) {
+      NSString *str = (NSString *)obj;
+      if ([str hasPrefix:@"/"]) {
+	[self.operandStack addObject:@"name"];
+      } else {
+	[self.operandStack addObject:@"string"];
+      }
+    } else if ([obj isKindOfClass:[NSArray class]]) {
+      [self.operandStack addObject:@"array"];
+    } else if ([obj isKindOfClass:[NSDictionary class]]) {
+      [self.operandStack addObject:@"dict"];
+    } else {
+      [self.operandStack addObject:@"unknown"];
+    }
+  } else if ([token isEqualToString:@"checkstack"]) {
+    if (self.operandStack.count < 1) {
+      NSLog(@"Stack underflow error on: %@", token);
+    }
+  } else if ([token isEqualToString:@"true"]) {
     [self.operandStack addObject:@YES];
   } else if ([token isEqualToString:@"false"]) {
     [self.operandStack addObject:@NO];
