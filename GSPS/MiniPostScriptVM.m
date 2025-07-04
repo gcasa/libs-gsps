@@ -67,7 +67,17 @@
 {
   if (self.exitFlag) return;
 
-  if ([token isEqualToString:@"stack"] || [token isEqualToString:@"pstack"]) {
+  // handle tokens...
+  if ([token isEqualToString:@"true"]) {
+    [self.operandStack addObject:@YES];
+  } else if ([token isEqualToString:@"false"]) {
+    [self.operandStack addObject:@NO];
+  } else if ([token hasPrefix:@"("] && [token hasSuffix:@")"]) {
+    NSString *string = [token substringWithRange:NSMakeRange(1, token.length - 2)];
+    [self.operandStack addObject:string];
+  } else if ([token hasPrefix:@"/"]) {
+    [self.operandStack addObject:token];
+  } else  if ([token isEqualToString:@"stack"] || [token isEqualToString:@"pstack"]) {
     NSLog(@"--- Stack ---");
     for (id obj in self.operandStack.reverseObjectEnumerator) {
       NSLog(@"%@", obj);
