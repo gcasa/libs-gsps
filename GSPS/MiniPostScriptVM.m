@@ -68,7 +68,82 @@
   if (self.exitFlag) return;
 
   // handle tokens...
-  if ([token isEqualToString:@"type"]) {
+  if ([token isEqualToString:@"save"]) {
+    NSDictionary *saveState = @{ @"graphics": [self.graphicsState copy],
+				 @"dicts": [[NSArray alloc] initWithArray:self.dictionaryStack copyItems:YES] };
+    [self.operandStack addObject:saveState];
+  } else if ([token isEqualToString:@"restore"]) {
+    NSDictionary *restoreState = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    self.graphicsState = restoreState[@"graphics"];
+    self.dictionaryStack = [restoreState[@"dicts"] mutableCopy];
+  } else if ([token isEqualToString:@"where"]) {
+    NSString *key = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    if ([key hasPrefix:@"/"]) key = [key substringFromIndex:1];
+    for (NSDictionary *dict in [self.dictionaryStack reverseObjectEnumerator]) {
+      if (dict[key]) {
+	[self.operandStack addObject:dict];
+	[self.operandStack addObject:@YES];
+	return;
+      }
+    }
+    [self.operandStack addObject:@NO];
+  } else if ([token isEqualToString:@"known"]) {
+    NSString *key = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSMutableDictionary *dict = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    if ([key hasPrefix:@"/"]) key = [key substringFromIndex:1];
+    [self.operandStack addObject:@(dict[key] != nil)];
+  } else if ([token isEqualToString:@"currentdict"]) {
+    [self.operandStack addObject:self.dictionaryStack.lastObject];
+  } else if ([token isEqualToString:@"copy"]) {
+    id val = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    if ([val isKindOfClass:[NSArray class]]) {
+      [self.operandStack addObject:[val mutableCopy]];
+    } else if ([val isKindOfClass:[NSDictionary class]]) {
+      [self.operandStack addObject:[val mutableCopy]];
+    } else {
+      [self.operandStack addObject:val];
+    }
+  } else if ([token isEqualToString:@"true"]) {
+    [self.operandStack addObject:@YES];
+  } else if ([token isEqualToString:@"false"]) {
+    [self.operandStack addObject:@NO];
+  } else if ([token hasPrefix:@"("] && [token hasSuffix:@")"]) {
+    NSString *string = [token substringWithRange:NSMakeRange(1, token.length - 2)];
+    [self.operandStack addObject:string];
+  } else if ([token hasPrefix:@"/"]) {
+    [self.operandStack addObject:token];
+  } else if ([token isEqualToString:@"concat"]) {
+    NSString *b = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSString *a = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    [self.operandStack addObject:[a stringByAppendingString:b]];
+  } else if ([token isEqualToString:@"substring"]) {
+    NSNumber *length = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSNumber *start = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSString *str = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    if (start.integerValue + length.integerValue <= str.length) {
+      NSString *substr = [str substringWithRange:NSMakeRange(start.integerValue, length.integerValue)];
+      [self.operandStack addObject:substr];
+    } else {
+      [self.operandStack addObject:@""];
+    }
+  } else if ([token isEqualToString:@"token"]) {
+    NSString *str = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSArray *components = [str componentsSeparatedByCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+    if (components.count > 0 && ((NSString *)components[0]).length > 0) {
+      [self.operandStack addObject:components[0]];
+      NSString *rest = [[components subarrayWithRange:NSMakeRange(1, components.count - 1)] componentsJoinedByString:@" "];
+      [self.operandStack addObject:rest];
+    } else {
+      [self.operandStack addObject:@"false"];
+    }
+  } else if ([token isEqualToString:@"cvx"]) {
+    id val = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    if ([val isKindOfClass:[NSString class]]) {
+      [self.operandStack addObject:@[val]];
+    } else {
+      [self.operandStack addObject:val];
+    }
+  } else if ([token isEqualToString:@"type"]) {
     id obj = self.operandStack.lastObject;
     if ([obj isKindOfClass:[NSNumber class]]) {
       [self.operandStack addObject:@"number"];
@@ -104,6 +179,24 @@
     for (id obj in self.operandStack.reverseObjectEnumerator) {
       NSLog(@"%@", obj);
     }
+  } else if ([token isEqualToString:@"=="]) {
+    id b = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    id a = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    [self.operandStack addObject:@([a isEqual:b])];
+  } else if ([token isEqualToString:@"and"]) {
+    NSNumber *b = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSNumber *a = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    [self.operandStack addObject:@(a.boolValue && b.boolValue)];
+  } else if ([token isEqualToString:@"or"]) {
+    NSNumber *b = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSNumber *a = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    [self.operandStack addObject:@(a.boolValue || b.boolValue)];
+  } else if ([token isEqualToString:@"not"]) {
+    NSNumber *a = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    [self.operandStack addObject:@(!a.boolValue)];
+  } else if ([token isEqualToString:@"print"] || [token isEqualToString:@"="]) {
+    id obj = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSLog(@"%@", obj);
   } else if ([token isEqualToString:@"sub"]) {
     NSNumber *b = self.operandStack.lastObject; [self.operandStack removeLastObject];
     NSNumber *a = self.operandStack.lastObject; [self.operandStack removeLastObject];
