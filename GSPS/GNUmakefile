@@ -33,6 +33,8 @@ GSPS_HEADER_FILES =
 #
 GSPS_OBJC_FILES = \
 MiniPostScriptVM.m \
+PSInterpreter.m \
+PSGraphicsState.m
 
 #
 # Makefiles

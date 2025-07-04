@@ -22,46 +22,23 @@
   Boston, MA 02110-1301, USA.
 */
 
-#import "PSGraphicsState.h"
-#import "PSInterpreter.h"
+#ifndef PSGRAPHICS_STATE_H
+#define PSGRAPHICS_STATE_H
 
-@interface PSRenderView : NSView
-@property (nonatomic, strong) PSInterpreter *interpreter;
+#import <Foundation/Foundation.h>
+#import <AppKit/AppKit.h>
+
+@interface PSGraphicsState : NSObject
+
+@property (nonatomic) NSPoint currentPoint;
+@property (nonatomic, strong) NSBezierPath *path;
+@property (nonatomic) CGFloat lineWidth;
+@property (nonatomic, strong) NSColor *strokeColor;
+@property (nonatomic, strong) NSColor *fillColor;
+@property (nonatomic, strong) NSFont *font;
+@property (nonatomic, strong) NSAffineTransform *transform;
+@property (nonatomic, strong) NSBezierPath *clipPath;
+
 @end
 
-@implementation PSRenderView
-- (void)drawRect:(NSRect)dirtyRect {
-    [super drawRect:dirtyRect];
-    [self.interpreter executeToken:@"stroke"];
-}
-@end
-
-int main(int argc, const char * argv[]) {
-    @autoreleasepool {
-	NSApplication *app = [NSApplication sharedApplication];
-	NSRect frame = NSMakeRect(0, 0, 400, 400);
-	NSWindow *window = [[NSWindow alloc] initWithContentRect:frame
-						       styleMask:(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable)
-							 backing:NSBackingStoreBuffered
-							   defer:NO];
-	[window setTitle:@"PostScript Renderer"];
-	[window center];
-
-	PSInterpreter *interpreter = [[PSInterpreter alloc] init];
-	PSRenderView *view = [[PSRenderView alloc] initWithFrame:frame];
-	view.interpreter = interpreter;
-	interpreter.renderView = view;
-
-	NSArray *program = @[@"newpath", @"100", @"100", @"moveto", @"200", @"200", @"lineto", @"300", @"100", @"lineto", @"closepath",
-			      @"0.2", @"0.4", @"0.6", @"setrgbcolor", @"setlinewidth", @"4", @"stroke", @"100", @"50", @"moveto",
-			      @"Helvetica", @"setfont", @"24", @"scalefont", @"Hello, PostScript!", @"show"];
-	for (NSString *token in program) {
-	    [interpreter executeToken:token];
-	}
-
-	[window setContentView:view];
-	[window makeKeyAndOrderFront:nil];
-	[app run];
-    }
-    return 0;
-}
+#endif
