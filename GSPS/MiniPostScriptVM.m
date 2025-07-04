@@ -18,16 +18,16 @@
 {
     if (self = [super init])
       {
-        _currentPoint = NSZeroPoint;
-        _path = [NSBezierPath bezierPath];
-        _lineWidth = 1.0;
-        _strokeColor = [NSColor blackColor];
-        _fillColor = [NSColor blackColor];
-        _font = [NSFont systemFontOfSize:12];
-        _transform = [NSAffineTransform transform];
+	_currentPoint = NSZeroPoint;
+	_path = [NSBezierPath bezierPath];
+	_lineWidth = 1.0;
+	_strokeColor = [NSColor blackColor];
+	_fillColor = [NSColor blackColor];
+	_font = [NSFont systemFontOfSize:12];
+	_transform = [NSAffineTransform transform];
 	_clipPath = nil;
       }
-    
+
     return self;
 }
 @end
@@ -60,8 +60,150 @@
 - (void)executeToken:(NSString *)token
 {
   if (self.exitFlag) return;
-  
-  if ([token isEqualToString:@"gsave"]) {
+
+  if ([token isEqualToString:@"showpage"]) {
+    if (self.renderView) {
+      [self.renderView setNeedsDisplay:YES];
+    }
+  } else if ([token isEqualToString:@"arc"]) {
+    NSNumber *angle2 = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSNumber *angle1 = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSNumber *radius = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSNumber *y = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSNumber *x = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    [self.graphicsState.path appendBezierPathWithArcWithCenter:NSMakePoint(x.doubleValue, y.doubleValue)
+							radius:radius.doubleValue
+						    startAngle:angle1.doubleValue
+						      endAngle:angle2.doubleValue
+						     clockwise:NO];
+  } else if ([token isEqualToString:@"curveto"]) {
+    NSNumber *y3 = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSNumber *x3 = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSNumber *y2 = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSNumber *x2 = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSNumber *y1 = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSNumber *x1 = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    [self.graphicsState.path curveToPoint:NSMakePoint(x3.doubleValue, y3.doubleValue)
+			    controlPoint1:NSMakePoint(x1.doubleValue, y1.doubleValue)
+			    controlPoint2:NSMakePoint(x2.doubleValue, y2.doubleValue)];
+  } else if ([token isEqualToString:@"rectfill"]) {
+    NSNumber *height = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSNumber *width = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSNumber *y = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSNumber *x = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSRect rect = NSMakeRect(x.doubleValue, y.doubleValue, width.doubleValue, height.doubleValue);
+    [self.graphicsState.fillColor setFill];
+    [NSBezierPath fillRect:rect];
+  } else if ([token isEqualToString:@"rectstroke"]) {
+    NSNumber *height = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSNumber *width = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSNumber *y = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSNumber *x = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSRect rect = NSMakeRect(x.doubleValue, y.doubleValue, width.doubleValue, height.doubleValue);
+    [self.graphicsState.strokeColor setStroke];
+    NSBezierPath *rpath = [NSBezierPath bezierPathWithRect:rect];
+    [rpath setLineWidth:self.graphicsState.lineWidth];
+    [rpath stroke];
+  } else if ([token isEqualToString:@"imagegray"]) {
+    NSData *data = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSNumber *height = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSNumber *width = self.operandStack.lastObject; [self.operandStack removeLastObject];
+
+    NSUInteger pixelCount = width.intValue * height.intValue;
+    NSMutableData *rgbaData = [NSMutableData dataWithLength:pixelCount * 4];
+    const uint8_t *gray = data.bytes;
+    uint8_t *rgba = (uint8_t *)rgbaData.mutableBytes;
+
+    for (NSUInteger i = 0; i < pixelCount; i++) {
+      uint8_t v = gray[i];
+      rgba[i * 4 + 0] = v;
+      rgba[i * 4 + 1] = v;
+      rgba[i * 4 + 2] = v;
+      rgba[i * 4 + 3] = 255;
+    }
+
+    NSBitmapImageRep *bitmap = [[NSBitmapImageRep alloc]
+				 initWithBitmapDataPlanes:NULL
+					       pixelsWide:width.intValue
+					       pixelsHigh:height.intValue
+					    bitsPerSample:8
+					  samplesPerPixel:4
+						 hasAlpha:YES
+						 isPlanar:NO
+					   colorSpaceName:NSCalibratedRGBColorSpace
+					      bytesPerRow:width.intValue * 4
+					     bitsPerPixel:32];
+
+    memcpy(bitmap.bitmapData, rgbaData.bytes, rgbaData.length);
+
+    NSImage *image = [[NSImage alloc] initWithSize:NSMakeSize(width.floatValue, height.floatValue)];
+    [image addRepresentation:bitmap];
+
+    NSPoint drawPoint = self.graphicsState.currentPoint;
+    [image drawAtPoint:drawPoint fromRect:NSZeroRect operation:NSCompositeSourceOver fraction:1.0];
+
+  } else if ([token isEqualToString:@"imagemask"]) {
+    NSData *mask = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSNumber *height = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSNumber *width = self.operandStack.lastObject; [self.operandStack removeLastObject];
+
+    NSUInteger pixelCount = width.intValue * height.intValue;
+    NSMutableData *rgbaData = [NSMutableData dataWithLength:pixelCount * 4];
+    const uint8_t *maskData = mask.bytes;
+    uint8_t *rgba = (uint8_t *)rgbaData.mutableBytes;
+
+    for (NSUInteger i = 0; i < pixelCount; i++) {
+      uint8_t v = maskData[i];
+      rgba[i * 4 + 0] = 0;
+      rgba[i * 4 + 1] = 0;
+      rgba[i * 4 + 2] = 0;
+      rgba[i * 4 + 3] = v;
+    }
+
+    NSBitmapImageRep *bitmap = [[NSBitmapImageRep alloc]
+				 initWithBitmapDataPlanes:NULL
+					       pixelsWide:width.intValue
+					       pixelsHigh:height.intValue
+					    bitsPerSample:8
+					  samplesPerPixel:4
+						 hasAlpha:YES
+						 isPlanar:NO
+					   colorSpaceName:NSCalibratedRGBColorSpace
+					      bytesPerRow:width.intValue * 4
+					     bitsPerPixel:32];
+
+    memcpy(bitmap.bitmapData, rgbaData.bytes, rgbaData.length);
+
+    NSImage *image = [[NSImage alloc] initWithSize:NSMakeSize(width.floatValue, height.floatValue)];
+    [image addRepresentation:bitmap];
+
+    NSPoint drawPoint = self.graphicsState.currentPoint;
+    [image drawAtPoint:drawPoint fromRect:NSZeroRect operation:NSCompositeSourceOver fraction:1.0];
+  } else if ([token isEqualToString:@"image"]) {
+    NSData *data = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSNumber *height = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSNumber *width = self.operandStack.lastObject; [self.operandStack removeLastObject];
+
+    NSBitmapImageRep *bitmap = [[NSBitmapImageRep alloc]
+				 initWithBitmapDataPlanes:NULL
+					       pixelsWide:width.intValue
+					       pixelsHigh:height.intValue
+					    bitsPerSample:8
+					  samplesPerPixel:4
+						 hasAlpha:YES
+						 isPlanar:NO
+					   colorSpaceName:NSCalibratedRGBColorSpace
+					      bytesPerRow:width.intValue * 4
+					     bitsPerPixel:32];
+
+    memcpy(bitmap.bitmapData, [data bytes], MIN([data length], bitmap.bytesPerRow * height.intValue));
+
+    NSImage *image = [[NSImage alloc] initWithSize:NSMakeSize(width.floatValue, height.floatValue)];
+    [image addRepresentation:bitmap];
+
+    NSPoint drawPoint = self.graphicsState.currentPoint;
+    [image drawAtPoint:drawPoint fromRect:NSZeroRect operation:NSCompositeSourceOver fraction:1.0];
+   } else if ([token isEqualToString:@"gsave"]) {
     PSGraphicsState *copy = [[PSGraphicsState alloc] init];
     copy.currentPoint = self.graphicsState.currentPoint;
     copy.path = [self.graphicsState.path copy];
@@ -164,7 +306,7 @@
   } else if ([token isEqualToString:@"scalefont"]) {
     NSNumber *scale = self.operandStack.lastObject; [self.operandStack removeLastObject];
     NSFontDescriptor *desc = [self.graphicsState.font fontDescriptor];
-    self.graphicsState.font = [NSFont fontWithDescriptor:desc size:scale.doubleValue];    
+    self.graphicsState.font = [NSFont fontWithDescriptor:desc size:scale.doubleValue];
   } else if ([token isEqualToString:@"setfont"]) {
     NSString *fontName = self.operandStack.lastObject; [self.operandStack removeLastObject];
     self.graphicsState.font = [NSFont fontWithName:fontName size:12] ?: [NSFont systemFontOfSize:12];
@@ -308,30 +450,30 @@
 
 int main(int argc, const char * argv[]) {
     @autoreleasepool {
-        NSApplication *app = [NSApplication sharedApplication];
-        NSRect frame = NSMakeRect(0, 0, 400, 400);
-        NSWindow *window = [[NSWindow alloc] initWithContentRect:frame
-                                                       styleMask:(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable)
-                                                         backing:NSBackingStoreBuffered
-                                                           defer:NO];
-        [window setTitle:@"PostScript Renderer"];
-        [window center];
+	NSApplication *app = [NSApplication sharedApplication];
+	NSRect frame = NSMakeRect(0, 0, 400, 400);
+	NSWindow *window = [[NSWindow alloc] initWithContentRect:frame
+						       styleMask:(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable)
+							 backing:NSBackingStoreBuffered
+							   defer:NO];
+	[window setTitle:@"PostScript Renderer"];
+	[window center];
 
-        PSInterpreter *interpreter = [[PSInterpreter alloc] init];
-        PSRenderView *view = [[PSRenderView alloc] initWithFrame:frame];
-        view.interpreter = interpreter;
-        interpreter.renderView = view;
+	PSInterpreter *interpreter = [[PSInterpreter alloc] init];
+	PSRenderView *view = [[PSRenderView alloc] initWithFrame:frame];
+	view.interpreter = interpreter;
+	interpreter.renderView = view;
 
-        NSArray *program = @[@"newpath", @"100", @"100", @"moveto", @"200", @"200", @"lineto", @"300", @"100", @"lineto", @"closepath",
+	NSArray *program = @[@"newpath", @"100", @"100", @"moveto", @"200", @"200", @"lineto", @"300", @"100", @"lineto", @"closepath",
 			      @"0.2", @"0.4", @"0.6", @"setrgbcolor", @"setlinewidth", @"4", @"stroke", @"100", @"50", @"moveto",
 			      @"Helvetica", @"setfont", @"24", @"scalefont", @"Hello, PostScript!", @"show"];
-        for (NSString *token in program) {
-            [interpreter executeToken:token];
-        }
+	for (NSString *token in program) {
+	    [interpreter executeToken:token];
+	}
 
-        [window setContentView:view];
-        [window makeKeyAndOrderFront:nil];
-        [app run];
+	[window setContentView:view];
+	[window makeKeyAndOrderFront:nil];
+	[app run];
     }
     return 0;
 }
