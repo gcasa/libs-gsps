@@ -61,7 +61,25 @@
 {
   if (self.exitFlag) return;
 
-  if ([token isEqualToString:@"showpage"]) {
+  if ([token isEqualToString:@"pathbbox"]) {
+    NSRect bounds = self.graphicsState.path.bounds;
+    [self.operandStack addObject:@(NSMinX(bounds))];
+    [self.operandStack addObject:@(NSMinY(bounds))];
+    [self.operandStack addObject:@(NSMaxX(bounds))];
+    [self.operandStack addObject:@(NSMaxY(bounds))];
+  } else if ([token isEqualToString:@"eofill"]) {
+    [self.graphicsState.fillColor setFill];
+    [self.graphicsState.path setWindingRule:NSEvenOddWindingRule];
+    [self.graphicsState.path fill];
+  } else if ([token isEqualToString:@"eoclip"]) {
+    if (!self.graphicsState.clipPath) {
+      self.graphicsState.clipPath = [self.graphicsState.path copy];
+    } else {
+      [self.graphicsState.clipPath appendBezierPath:self.graphicsState.path];
+    }
+    [self.graphicsState.clipPath setWindingRule:NSEvenOddWindingRule];
+    [self.graphicsState.clipPath addClip];
+  } else if ([token isEqualToString:@"showpage"]) {
     if (self.renderView) {
       [self.renderView setNeedsDisplay:YES];
     }
