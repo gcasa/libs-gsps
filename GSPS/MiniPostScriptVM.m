@@ -3,6 +3,7 @@
 #import <AppKit/AppKit.h>
 
 @interface PSGraphicsState : NSObject
+
 @property (nonatomic) NSPoint currentPoint;
 @property (nonatomic, strong) NSBezierPath *path;
 @property (nonatomic) CGFloat lineWidth;
@@ -11,6 +12,7 @@
 @property (nonatomic, strong) NSFont *font;
 @property (nonatomic, strong) NSAffineTransform *transform;
 @property (nonatomic, strong) NSBezierPath *clipPath;
+
 @end
 
 @implementation PSGraphicsState
@@ -33,13 +35,17 @@
 @end
 
 @interface PSInterpreter : NSObject
+
 @property (nonatomic, strong) NSMutableArray *operandStack;
 @property (nonatomic, strong) NSMutableArray *dictionaryStack;
 @property (nonatomic, strong) NSMutableArray *graphicsStack;
 @property (nonatomic, strong) PSGraphicsState *graphicsState;
 @property (nonatomic, assign) BOOL exitFlag;
+@property (nonatomic, strong) NSMutableArray *clipStack;
 @property (nonatomic, strong) NSView *renderView;
+
 - (void)executeToken:(NSString *)token;
+
 @end
 
 @implementation PSInterpreter
@@ -61,7 +67,56 @@
 {
   if (self.exitFlag) return;
 
-  if ([token isEqualToString:@"pathbbox"]) {
+  if ([token isEqualToString:@"cliprestore"]) {
+    if (self.clipStack.count > 0) {
+      self.graphicsState.clipPath = [self.clipStack lastObject];
+      [self.clipStack removeLastObject];
+    }
+  } else if ([token isEqualToString:@"clipsave"]) {
+    if (self.graphicsState.clipPath) {
+      [self.clipStack addObject:[self.graphicsState.clipPath copy]];
+    } else {
+      [self.clipStack addObject:[NSBezierPath bezierPath]];
+    }
+  } else if ([token isEqualToString:@"flattenpath"]) {
+    [self.graphicsState.path setFlatness:1.0];
+    // No actual decomposition needed in NSBezierPath: assumed flat render
+  } else if ([token isEqualToString:@"reversepath"]) {
+    NSBezierPath *reversed = [NSBezierPath bezierPath];
+    for (NSInteger i = self.graphicsState.path.elementCount - 1; i >= 0; i--) {
+      NSBezierPathElement element = [self.graphicsState.path elementAtIndex:i associatedPoints:NULL];
+      // For brevity, we're just reversing move/line points; curves skipped
+      if (element == NSMoveToBezierPathElement || element == NSLineToBezierPathElement) {
+	NSPoint pt;
+	[self.graphicsState.path elementAtIndex:i associatedPoints:&pt];
+	if (element == NSMoveToBezierPathElement) {
+	  [reversed moveToPoint:pt];
+	} else {
+	  [reversed lineToPoint:pt];
+	}
+      }
+    }
+    self.graphicsState.path = reversed;
+  } else if ([token isEqualToString:@"pathforall"]) {
+    for (NSInteger i = 0; i < self.graphicsState.path.elementCount; i++) {
+      NSPoint pts[3];
+      NSBezierPathElement type = [self.graphicsState.path elementAtIndex:i associatedPoints:pts];
+      switch (type) {
+      case NSMoveToBezierPathElement:
+	NSLog(@"moveto %f %f", pts[0].x, pts[0].y);
+	break;
+      case NSLineToBezierPathElement:
+	NSLog(@"lineto %f %f", pts[0].x, pts[0].y);
+	break;
+      case NSCurveToBezierPathElement:
+	NSLog(@"curveto %f %f %f %f %f %f", pts[0].x, pts[0].y, pts[1].x, pts[1].y, pts[2].x, pts[2].y);
+	break;
+      case NSClosePathBezierPathElement:
+	NSLog(@"closepath");
+	break;
+      }
+    }
+  } else if ([token isEqualToString:@"pathbbox"]) {
     NSRect bounds = self.graphicsState.path.bounds;
     [self.operandStack addObject:@(NSMinX(bounds))];
     [self.operandStack addObject:@(NSMinY(bounds))];
