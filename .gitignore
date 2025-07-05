@@ -3,3 +3,6 @@
 obj
 *.app
 obj
+*.framework
+*.log
+.lock

@@ -22,8 +22,8 @@
   Boston, MA 02110-1301, USA.
 */
 
-#import "PSGraphicsState.h"
-#import "PSInterpreter.h"
+#import <GSPS/PSGraphicsState.h>
+#import <GSPS/PSInterpreter.h>
 
 @interface PSRenderView : NSView
 @property (nonatomic, strong) PSInterpreter *interpreter;
