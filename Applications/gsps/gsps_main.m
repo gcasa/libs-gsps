@@ -36,6 +36,7 @@
 }
 @end
 
+/*
 int main(int argc, const char * argv[]) {
     @autoreleasepool {
 	NSApplication *app = [NSApplication sharedApplication];
@@ -63,5 +64,45 @@ int main(int argc, const char * argv[]) {
 	[window makeKeyAndOrderFront:nil];
 	[app run];
     }
+    return 0;
+}
+
+#import <Foundation/Foundation.h>
+#import "MiniPostScriptVM.m"
+*/
+
+int main(int argc, const char * argv[])
+{
+    @autoreleasepool
+      {
+        if (argc < 2)
+	  {
+            NSLog(@"Usage: gsps <path-to-ps-file>");
+            return 1;
+	  }
+	else
+	  {
+	    NSApplication *app = [NSApplication sharedApplication];
+	    NSRect frame = NSMakeRect(0, 0, 400, 400);
+	    NSWindow *window = [[NSWindow alloc] initWithContentRect:frame
+							   styleMask:(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable)
+							     backing:NSBackingStoreBuffered
+							       defer:NO];
+	    
+	    
+	    NSString *filePath = [NSString stringWithUTF8String:argv[1]];
+	    PSInterpreter *interpreter = [[PSInterpreter alloc] init];
+	    PSRenderView *view = [[PSRenderView alloc] initWithFrame:frame];
+	    view.interpreter = interpreter;
+	    interpreter.renderView = view;
+	    
+	    [interpreter interpretFileAtPath:filePath];
+
+	    [window setContentView:view];
+	    [window makeKeyAndOrderFront:nil];
+	    [app run];
+	  }
+      }
+    
     return 0;
 }
