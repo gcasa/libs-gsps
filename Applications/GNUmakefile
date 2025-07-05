@@ -10,17 +10,9 @@ endif
 
 include $(GNUSTEP_MAKEFILES)/common.make
 
-#
-# Aggregate
-#
-VERSION = 0.1.0
-PACKAGE_NAME = GSPS
-
 # Generator bundles
 SUBPROJECTS = \
-	GSPS \
-	Applications \
-	Documentation
+	gsps
 
 #
 # Makefiles

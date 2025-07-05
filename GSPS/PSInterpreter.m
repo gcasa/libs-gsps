@@ -1,5 +1,6 @@
 /*
   Copyright (C) 2013 Free Software Foundation, Inc.
+
   Author:  Gregory Casamento <greg.casamento@gmail.com>
   Date: 2025
   This file is part of the GNUstep GUI Library.
@@ -10,11 +11,12 @@
   version 2 of the License, or (at your option) any later version.
 
   This library is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of                                  
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   Lesser General Public License for more details.
-                               
+
   You should have received a copy of the GNU Lesser General Public
-  License along with this library; see the file COPYING.LIB. 
+  License along with this library; see the file COPYING.LIB.
   If not, see <http://www.gnu.org/licenses/> or write to the
   Free Software Foundation, 51 Franklin Street, Fifth Floor,
   Boston, MA 02110-1301, USA.
@@ -45,14 +47,19 @@
   // handle tokens...
   if ([token isEqualToString:@"save"]) {
     NSDictionary *saveState = @{ @"graphics": [self.graphicsState copy],
-				 @"dicts": [[NSArray alloc] initWithArray:self.dictionaryStack copyItems:YES] };
+				 @"dicts": [[NSArray alloc] initWithArray:self.dictionaryStack
+								copyItems:YES] };
     [self.operandStack addObject:saveState];
   } else if ([token isEqualToString:@"restore"]) {
-    NSDictionary *restoreState = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSDictionary *restoreState = self.operandStack.lastObject;
+
+    [self.operandStack removeLastObject];
     self.graphicsState = restoreState[@"graphics"];
     self.dictionaryStack = [restoreState[@"dicts"] mutableCopy];
   } else if ([token isEqualToString:@"where"]) {
-    NSString *key = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSString *key = self.operandStack.lastObject;
+
+    [self.operandStack removeLastObject];
     if ([key hasPrefix:@"/"]) key = [key substringFromIndex:1];
     for (NSDictionary *dict in [self.dictionaryStack reverseObjectEnumerator]) {
       if (dict[key]) {
@@ -63,8 +70,12 @@
     }
     [self.operandStack addObject:@NO];
   } else if ([token isEqualToString:@"known"]) {
-    NSString *key = self.operandStack.lastObject; [self.operandStack removeLastObject];
-    NSMutableDictionary *dict = self.operandStack.lastObject; [self.operandStack removeLastObject];
+    NSString *key = self.operandStack.lastObject;
+
+    [self.operandStack removeLastObject];
+    NSMutableDictionary *dict = self.operandStack.lastObject;
+
+    [self.operandStack removeLastObject];
     if ([key hasPrefix:@"/"]) key = [key substringFromIndex:1];
     [self.operandStack addObject:@(dict[key] != nil)];
   } else if ([token isEqualToString:@"currentdict"]) {
@@ -724,6 +735,27 @@
       [self.operandStack addObject:token];
     }
   }
+}
+
+- (void)interpretFileAtPath:(NSString *)path
+{
+  NSError *error = nil;
+  NSString *content = [NSString stringWithContentsOfFile: path
+						encoding: NSUTF8StringEncoding
+						   error: &error];
+  if (error)
+    {
+      NSLog(@"Error reading file: %@", error);
+      return;
+    }
+  
+  NSArray *tokens = [content componentsSeparatedByCharactersInSet:
+			       [NSCharacterSet whitespaceAndNewlineCharacterSet]];
+  for (NSString *token in tokens)
+    {
+      if (token.length == 0) continue;
+      [self executeToken:token];
+    }
 }
 
 @end

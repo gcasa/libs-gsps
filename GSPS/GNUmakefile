@@ -13,34 +13,34 @@ include $(GNUSTEP_MAKEFILES)/common.make
 #
 # Framework
 #
-VERSION = 0.0.1
+VERSION = 0.1.0
 PACKAGE_NAME = GSPS
-APP_NAME = GSPS
-# FRAMEWORK_NAME = GSPS
+FRAMEWORK_NAME = GSPS
 
 #
 # Resource files
 #
-GSPS_RESOURCE_FILES =
+GSPS_RESOURCE_FILES = 
 
 #
 # Header files
 #
-GSPS_HEADER_FILES = 
+GSPS_HEADER_FILES = \
+PSGraphicsState.h \
+PSInterpreter.h \
+GSPS.h
 
 #
 # Class files
 #
 GSPS_OBJC_FILES = \
-MiniPostScriptVM.m \
-PSInterpreter.m \
-PSGraphicsState.m
+PSGraphicsState.m \
+PSInterpreter.m
 
 #
 # Makefiles
 #
 -include GNUmakefile.preamble
 include $(GNUSTEP_MAKEFILES)/aggregate.make
-#include $(GNUSTEP_MAKEFILES)/framework.make
-include $(GNUSTEP_MAKEFILES)/application.make
+include $(GNUSTEP_MAKEFILES)/framework.make
 -include GNUmakefile.postamble
