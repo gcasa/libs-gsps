@@ -20,7 +20,7 @@ PACKAGE_NAME = GSPS
 SUBPROJECTS = \
 	GSPS \
 	Applications \
-	Documentation
+#	Documentation
 
 #
 # Makefiles
