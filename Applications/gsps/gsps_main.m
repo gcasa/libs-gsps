@@ -24,52 +24,7 @@
 
 #import <GSPS/PSGraphicsState.h>
 #import <GSPS/PSInterpreter.h>
-
-@interface PSRenderView : NSView
-@property (nonatomic, strong) PSInterpreter *interpreter;
-@end
-
-@implementation PSRenderView
-- (void)drawRect:(NSRect)dirtyRect {
-    [super drawRect:dirtyRect];
-    [self.interpreter executeToken:@"stroke"];
-}
-@end
-
-/*
-int main(int argc, const char * argv[]) {
-    @autoreleasepool {
-	NSApplication *app = [NSApplication sharedApplication];
-	NSRect frame = NSMakeRect(0, 0, 400, 400);
-	NSWindow *window = [[NSWindow alloc] initWithContentRect:frame
-						       styleMask:(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable)
-							 backing:NSBackingStoreBuffered
-							   defer:NO];
-	[window setTitle:@"PostScript Renderer"];
-	[window center];
-
-	PSInterpreter *interpreter = [[PSInterpreter alloc] init];
-	PSRenderView *view = [[PSRenderView alloc] initWithFrame:frame];
-	view.interpreter = interpreter;
-	interpreter.renderView = view;
-
-	NSArray *program = @[@"newpath", @"100", @"100", @"moveto", @"200", @"200", @"lineto", @"300", @"100", @"lineto", @"closepath",
-			      @"0.2", @"0.4", @"0.6", @"setrgbcolor", @"setlinewidth", @"4", @"stroke", @"100", @"50", @"moveto",
-			      @"Helvetica", @"setfont", @"24", @"scalefont", @"Hello, PostScript!", @"show"];
-	for (NSString *token in program) {
-	    [interpreter executeToken:token];
-	}
-
-	[window setContentView:view];
-	[window makeKeyAndOrderFront:nil];
-	[app run];
-    }
-    return 0;
-}
-
-#import <Foundation/Foundation.h>
-#import "MiniPostScriptVM.m"
-*/
+#import <GSPS/PSRenderView.h>
 
 int main(int argc, const char * argv[])
 {
@@ -77,7 +32,7 @@ int main(int argc, const char * argv[])
       {
         if (argc < 2)
 	  {
-            NSLog(@"Usage: gsps <path-to-ps-file>");
+            puts("Usage: gsps <path-to-ps-file>\n");
             return 1;
 	  }
 	else

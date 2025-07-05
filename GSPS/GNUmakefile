@@ -28,6 +28,7 @@ GSPS_RESOURCE_FILES =
 GSPS_HEADER_FILES = \
 PSGraphicsState.h \
 PSInterpreter.h \
+PSRenderView.h \
 GSPS.h
 
 #
@@ -35,7 +36,8 @@ GSPS.h
 #
 GSPS_OBJC_FILES = \
 PSGraphicsState.m \
-PSInterpreter.m
+PSInterpreter.m \
+PSRenderView.m
 
 #
 # Makefiles
